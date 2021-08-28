@@ -1,0 +1,56 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+Effect size calculation in the chi-squared test for association
+
+```{r}
+
+packages = c('magrittr','dplyr','Rcpp','RcppArmadillo')
+
+package.check <- lapply(packages, FUN = function(x) {
+    if (!require(x, character.only = TRUE)) {
+        install.packages(x, dependencies = TRUE)
+        library(x, character.only = TRUE, quietly = TRUE, warn.conflicts = FALSE)
+    }
+})
+
+
+```
+
+
+
+```{r function from githib pwr package}
+
+"ES.w1" <-
+function(P0,P1){
+sqrt(sum((P1-P0)^2/P0))
+}
+
+P0 = 0.5
+P1 = 0.2
+
+
+```
+
+```{r}
+# pow(x,base) is for exponentiating
+ 
+cppFunction('double ES_w1(double p0, double p1) {
+  double temp_var = sqrt(pow((p1-p0),2)/p0);
+  return temp_var;
+}')
+```
+
+
+
+
+
+
+
+
+
+
+
+
