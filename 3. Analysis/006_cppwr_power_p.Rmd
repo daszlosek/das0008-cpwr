@@ -1,0 +1,364 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+Power calculations for proportion tests (one sample)
+
+```{r}
+
+packages = c('magrittr','tidyverse','Rcpp','RcppArmadillo')
+
+package.check <- lapply(packages, FUN = function(x) {
+    if (!require(x, character.only = TRUE)) {
+        install.packages(x, dependencies = TRUE)
+        library(x, character.only = TRUE, quietly = TRUE, warn.conflicts = FALSE)
+    }
+})
+
+
+```
+
+```{r get all error messages}
+
+pwr::pwr.p.test(h = NULL, n = 10, sig.level = 0.05, power = NULL)
+
+pwr::pwr.p.test(h = 0.8, n = 0, sig.level = 0.05, power = NULL)
+
+pwr::pwr.p.test(h = 0.8, n = 10, sig.level = "0.05", power = NULL)
+
+pwr::pwr.p.test(h = NULL, n = 10, sig.level = 0.05, power = "0.7")
+
+
+```
+
+```{r}
+
+sum(sapply(list(h, n, power, sig.level), is.null)) != 1)
+
+```
+
+
+
+```{r}
+
+cppFunction('"NULL" test_null("NULL" temp_null) {
+  double temp_var = 2 * asin(sqrt(p1)) - 2 * asin(sqrt(p2));
+  return temp_var;
+}')
+
+
+
+test <- NULL
+
+typeof(test)
+```
+
+
+```{r}
+
+Rboolean (Rf_isNull)(SEXP s);
+
+
+
+cppFunction('double ES_h(double p1, double p2) {
+  double temp_var = 2 * asin(sqrt(p1)) - 2 * asin(sqrt(p2));
+  return temp_var;
+}')
+```
+
+
+
+
+```{r}
+
+cppFunction('int testfun(Rcpp::Nullable<Rcpp::IntegerVector> kfolds = R_NilValue) {
+
+  if (kfolds.isNotNull()) {
+    Rcpp::IntegerVector x(kfolds);
+    Rcpp::Rcout << "Not NULL\n";
+    Rcpp::Rcout << x << std::endl;
+  } else {
+    Rcpp::Rcout << "Is NULL\n";
+  }
+  return(42);
+}')
+
+```
+
+
+
+
+
+
+```{r take out bs}
+
+alternative = c("two.sided","less","greater")
+
+
+alternative <- c("two.sided") 
+
+alternative <- match.arg(alternative)
+
+
+
+testing <- function (alternative = c("two.sided","less","greater")) {
+    alternative <- match.arg(alternative) # gives warning if not one of the present arguments
+    tside <- switch(alternative, less = 1, two.sided = 2, greater=3) # turns alternative into numeric value
+}
+
+
+testing("greater")
+```
+
+
+```{r}
+ Src <- '
++ NumericVector y = NumericVector(x);
++ NumericVector res = pnorm(y,0.0,1.0);
++ return res;
++ '
+
+fx <-  cppFunction( signature(x = "numeric") , body=Src, plugin = "Rcpp")
+```
+
+
+```{r}
+
+NumericVector Rcpp::dXXX( NumericVector x, double par,                    bool log = false )
+NumericVector Rcpp::pXXX( NumericVector q, double par, bool lower = true, bool log = false )
+NumericVector Rcpp::qXXX( NumericVector p, double par, bool lower = true, bool log = false )
+NumericVector Rcpp::rXXX(           int n, double par )
+
+```
+
+
+```{r}
+
+cppFunction('double test_qnorm(double p) {
+  return Rcpp::qnorm(p);
+}')
+
+
+
+qnorm(0.9)
+```tr0p;
+
+
+
+```{r}
+install.packages("inline")
+
+library(inline)
+f <- cppFunction(signature(xs="numeric", plugin="Rcpp", body='
+     Rcpp::NumericVector x(xs);
+     return Rcpp::wrap(Rcpp::qnorm(x, 1.0, 0.0));')
+)
+
+```
+
+
+
+```{r}
+tside <- 2
+sig.level <- 0.05
+h <- 0.6
+n <- 30
+
+
+1/pnorm(sig.level/2, lower = FALSE)
+
+qnorm(sig.level/2, lower = FALSE)
+
+
+
+pnorm(qnorm(sig.level/2, lower = FALSE) - h * sqrt(n), 
+            lower = FALSE) + pnorm(qnorm(sig.level/2, lower = TRUE) - 
+                h * sqrt(n), lower = TRUE)
+      
+
+
+
+
+qnorm(sig.level/2, lower = FALSE)
+print(qnorm(0.025)
+
+      
+      
+print(p.body)
+```
+
+```{r}
+
+rnorm(10)
+
+```
+
+
+
+
+```{r take ou}
+
+
+
+"pwr.p.test" <-
+function (h = NULL, n = NULL, sig.level = 0.05, power = NULL, 
+    alternative = c("two.sided","less","greater")) 
+{
+    alternative <- match.arg(alternative)
+    tside <- switch(alternative, less = 1, two.sided = 2, greater=3)
+    if (tside == 2 && !is.null(h)) 
+        h <- abs(h)
+    if (tside == 2) {
+        p.body <- quote({
+            pnorm(qnorm(sig.level/2, lower = FALSE) - h * sqrt(n), 
+                lower = FALSE) + pnorm(qnorm(sig.level/2, lower = TRUE) - 
+                h * sqrt(n), lower = TRUE)
+        })
+    }
+    if (tside == 3) {
+        p.body <- quote({
+            pnorm(qnorm(sig.level, lower = FALSE) - h * sqrt(n), 
+                lower = FALSE)
+        })
+    }
+
+if (tside == 1) {
+        p.body <- quote({
+            pnorm(qnorm(sig.level, lower = TRUE) - h * sqrt(n), 
+                lower = TRUE)
+        })
+    }
+
+    if (is.null(power)) 
+        power <- eval(p.body)
+    else if (is.null(h)){ 
+ 	if(tside==2){       h <- uniroot(function(h) eval(p.body) - power, 
+					c(1e-10,10))$root}
+	if(tside==1){       h <- uniroot(function(h) eval(p.body) - power, 
+					c(-10,5))$root}
+	if(tside==3){       h <- uniroot(function(h) eval(p.body) - power, 
+					c(-5,10))$root}
+}
+    else if (is.null(n)) 
+        n <- uniroot(function(n) eval(p.body) - power, c(2 + 
+            1e-10, 1e+09))$root
+    else if (is.null(sig.level)) 
+        sig.level <- uniroot(function(sig.level) eval(p.body) - 
+            power, c(1e-10, 1 - 1e-10))$root
+    else stop("internal error")
+    METHOD <- "proportion power calculation for binomial distribution (arcsine transformation)"
+    structure(list(h = h, n = n, sig.level = sig.level, power = power, 
+        alternative = alternative, method = METHOD), class = "power.htest")
+}
+
+
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r full function}
+
+"pwr.p.test" <-
+function (h = NULL, n = NULL, sig.level = 0.05, power = NULL, 
+    alternative = c("two.sided","less","greater")) 
+{
+    if (sum(sapply(list(h, n, power, sig.level), is.null)) != 
+        1) 
+        stop("exactly one of h, n, power, and sig.level must be NULL")
+    if (!is.null(n) && n < 1) 
+        stop("number of observations in each group must be at least 1")
+    if (!is.null(sig.level) && !is.numeric(sig.level) || any(0 > 
+        sig.level | sig.level > 1)) 
+        stop(sQuote("sig.level"), " must be numeric in [0, 1]")
+    if (!is.null(power) && !is.numeric(power) || any(0 > power | 
+        power > 1)) 
+        stop(sQuote("power"), " must be numeric in [0, 1]")
+    alternative <- match.arg(alternative) # gives warning if not correct input
+    tside <- switch(alternative, less = 1, two.sided = 2, greater=3) # switches alternatvie numeric
+    if (tside == 2 && !is.null(h))  
+        h <- abs(h)
+    if (tside == 2) { 
+        p.body <- quote({
+            pnorm(qnorm(sig.level/2, lower = FALSE) - h * sqrt(n), 
+                lower = FALSE) + pnorm(qnorm(sig.level/2, lower = TRUE) - 
+                h * sqrt(n), lower = TRUE)
+        })
+    }
+    if (tside == 3) {
+        p.body <- quote({
+            pnorm(qnorm(sig.level, lower = FALSE) - h * sqrt(n), 
+                lower = FALSE)
+        })
+    }
+
+if (tside == 1) {
+        p.body <- quote({
+            pnorm(qnorm(sig.level, lower = TRUE) - h * sqrt(n), 
+                lower = TRUE)
+        })
+    }
+
+    if (is.null(power)) 
+        power <- eval(p.body)
+    else if (is.null(h)){ 
+ 	if(tside==2){       h <- uniroot(function(h) eval(p.body) - power, 
+					c(1e-10,10))$root}
+	if(tside==1){       h <- uniroot(function(h) eval(p.body) - power, 
+					c(-10,5))$root}
+	if(tside==3){       h <- uniroot(function(h) eval(p.body) - power, 
+					c(-5,10))$root}
+}
+    else if (is.null(n)) 
+        n <- uniroot(function(n) eval(p.body) - power, c(2 + 
+            1e-10, 1e+09))$root
+    else if (is.null(sig.level)) 
+        sig.level <- uniroot(function(sig.level) eval(p.body) - 
+            power, c(1e-10, 1 - 1e-10))$root
+    else stop("internal error")
+    METHOD <- "proportion power calculation for binomial distribution (arcsine transformation)"
+    structure(list(h = h, n = n, sig.level = sig.level, power = power, 
+        alternative = alternative, method = METHOD), class = "power.htest")
+}
+
+
+```
+
+
+
+
+
+
+```{r}
+
+
+pnorm()
+
+
+qnorm()
+
+```
+
