@@ -1,0 +1,146 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+
+
+
+```{r}
+
+packages = c('magrittr','dplyr','Rcpp','RcppArmadillo', "inline")
+
+package.check <- lapply(packages, FUN = function(x) {
+    if (!require(x, character.only = TRUE)) {
+        install.packages(x, dependencies = TRUE)
+        library(x, character.only = TRUE, quietly = TRUE, warn.conflicts = FALSE)
+    }
+})
+
+```
+
+
+
+
+```{r}
+
+# http://powerandsamplesize.com/Calculators/Compare-Paired-Proportions/McNemar-Z-test-2-Sided-Equality
+
+# Connor R. J. 1987. Sample size for testing differences in proportions for the paired-sample design. Biometrics 43(1):207-211. page 209.
+#  Also in Zhou X.H. 2011. Statistical Methods in Diagnostic Medicine. page 205
+
+# https://www.jstor.org/stable/pdf/2531961.pdf?refreqid=excelsior%3Aa10768771262fb475ccd600f65eebdec
+mcnemar_power <- function(fpr,fnr,alpha,beta){
+
+phi=fpr+fnr
+delta=fpr-fnr
+
+n=((qnorm(1-alpha/2)*sqrt(phi)+qnorm(1-beta)*sqrt(phi-delta^2))/delta)^2
+ceiling(n)
+x1=( delta*sqrt(n)-qnorm(1-alpha/2)*sqrt(phi))/sqrt(phi-delta^2)
+x2=(-delta*sqrt(n)-qnorm(1-alpha/2)*sqrt(phi))/sqrt(phi-delta^2)
+power = (pnorm(x1)+pnorm(x2))
+
+temp_dat <- cbind(n,power)
+
+print(temp_dat)
+
+}
+
+```
+
+
+```{r testing build}
+# consider adding noNA() to speed up calculation
+# NumericVector n_v = NumericVector::create(n);
+
+cppFunction('NumericVector paried_prop(double fpr, double fnr,double alpha, double beta) {
+
+double phi = fpr+fnr;
+double delta = fpr-fnr;
+
+double n = pow(((R::qnorm(1-alpha/2,0.0,1.0,1,0) * sqrt(phi) + R::qnorm(1-beta,0.0,1.0,1,0) * sqrt(phi- pow(delta,2)) )/delta),2);
+
+double x1 = (delta*sqrt(n)-R::qnorm(1-alpha/2,0.0,1.0,1,0)*sqrt(phi)) / sqrt(phi- pow(delta,2));
+
+double x2= (-delta*sqrt(n)-R::qnorm(1-alpha/2,0.0,1.0,1,0)*sqrt(phi))/  sqrt(phi- pow(delta,2));
+
+double power = (R::pnorm(x1,0.0,1.0,1,0) + R::pnorm(x2,0.0,1.0,1,0));
+
+NumericVector output = NumericVector::create(Named("N",n), Named("Power",power));
+
+return output;
+  
+}')
+
+# x1 = ( delta*sqrt(n)-qnorm(1-alpha/2)*sqrt(phi))/sqrt(phi-delta^2)
+
+
+#install.packages("tictoc")
+
+library("tictoc")
+
+
+
+tic()
+paried_prop(0.2,0.3,0.05,0.1)
+toc()
+
+tic()
+mcnemar_power(0.2,0.3,0.05,0.1)
+toc()
+```
+
+
+```{r}
+
+loop_dat <- data.frame()
+vector_list2 <- 1:10000
+
+for (variable2 in vector_list2) {
+
+  vector_list <- seq(0,1,0.1)
+  
+tic()
+for (variable in vector_list) {
+  
+  mcnemar_power(variable,0.3,0.05,0.1)
+  
+}
+toc_dat <- toc() %>% unlist() %>% data.frame() %>% t() %>% data.frame() %>% mutate(loop_num = variable2)
+
+loop_dat <- rbind(loop_dat, toc_dat)
+
+
+
+}
+
+sim_data_pwr = loop_dat %>% mutate(diff_time = toc.elapsed - tic.elapsed)
+
+library(ggplot2)
+
+ggplot2::ggplot(sim_data_pwr,aes(x = diff_time)) +
+         geom_histogram()
+
+```
+
+```{r}
+
+vector_list <- seq(0,1,0.1)
+
+tic()
+for (variable in vector_list) {
+  
+  print(paried_prop(variable,0.3,0.05,0.1))
+  
+}
+toc()
+
+
+
+```
+
+
+
+
