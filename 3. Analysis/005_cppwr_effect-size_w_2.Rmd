@@ -1,0 +1,86 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+Effect size calculation in the chi-squared test for association using a probability table to start with
+
+```{r}
+
+packages = c('magrittr','Rcpp','RcppArmadillo')
+
+package.check <- lapply(packages, FUN = function(x) {
+    if (!require(x, character.only = TRUE)) {
+        install.packages(x, dependencies = TRUE)
+        library(x, character.only = TRUE, quietly = TRUE, warn.conflicts = FALSE)
+    }
+})
+
+
+```
+
+
+
+
+
+```{r function from githib pwr package}
+
+"ES.w2" <-
+function(P){
+pi<-apply(P,1,sum)
+pj<-apply(P,2,sum)
+P0<-pi%*%t(pj)
+sqrt(sum((P-P0)^2/P0))
+}
+
+
+```
+
+```{r}
+cppFunction('double ES_w2(double p0, double p1) {
+  double temp_var = pow((p1-p0),2.0)/p0;
+  return temp_var;
+}')
+```
+
+```{r}
+# pow(x,base) is for exponentiating
+ 
+cppFunction('double ES_w2(double p0, double p1) {
+  double temp_var = sqrt(pow((p1-p0),2)/p0);
+  return temp_var;
+}')
+```
+
+```{r}
+m <- matrix(1:4, 2)
+
+m
+mn <- prop.table(m, 1)
+mn
+```
+
+```{r}
+P <- mn
+
+pi<-apply(P,1,sum) # sum the rows
+
+pi
+
+pj<-apply(P,2,sum) # sum the columns
+
+pj
+
+P0<-pi%*%t(pj)  #  Multiplies two matrices afer transposing pj
+
+#sqrt(sum((P-P0)^2/P0))
+
+```
+
+```{r}
+
+
+pwr::ES.w2(mn)
+
+ES_w2(mn)
+
+```
